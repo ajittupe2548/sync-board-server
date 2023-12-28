@@ -12,6 +12,7 @@ const io = new Server(httpServer, {
   cors: URL,
 });
 
+let text = null;
 io.on('connection', (socket) => {
   console.log('Server Connected!');
 
@@ -25,6 +26,15 @@ io.on('connection', (socket) => {
 
   socket.on('changeConfig', (args) => {
     socket.broadcast.emit('changeConfig', args);
+  });
+
+  socket.on('textChange', (args) => {
+    socket.broadcast.emit('textChange', args);
+    text = args;
+  });
+
+  socket.on('initText', () => {
+    socket.emit('getText', text);
   });
 });
 
