@@ -12,7 +12,7 @@ const io = new Server(httpServer, {
   cors: URL,
 });
 
-let text = null;
+let text = null, syncUrl = '';
 io.on('connection', (socket) => {
   console.log('Server Connected!');
 
@@ -29,12 +29,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('textChange', (args) => {
-    socket.broadcast.emit('textChange', args);
+    socket.broadcast.emit('textChange', args, syncUrl);
     text = args;
   });
 
-  socket.on('initText', () => {
+  socket.on('initText', (url) => {
     socket.emit('getText', text);
+    syncUrl = url;
   });
 });
 
