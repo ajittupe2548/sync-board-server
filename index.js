@@ -34,7 +34,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('initText', (url) => {
-    socket.emit('getText', text);
+    socket.emit('getText', text, syncUrl);
     syncUrl = url;
   });
 });
