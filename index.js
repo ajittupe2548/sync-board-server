@@ -12,30 +12,139 @@ const io = new Server(httpServer, {
   cors: URL,
 });
 
-let text = null, syncUrl = '';
+const clients = [];
+
+/* let objExample = {
+  url1: {
+    text: '',
+    users: {
+      userId: socket,
+    },
+    draw: {
+      coords: {
+        x: '',
+        y: '',
+      },
+      config: {
+        color: 'red',
+        size: 1,
+      }
+    }
+  }
+}; */
+
+let obj = {};
 io.on('connection', (socket) => {
-  console.log('Server Connected!');
-
-  socket.on('beginPath', (args) => {
-    socket.broadcast.emit('beginPath', args);
+  clients.push(socket.id);
+  socket.on('init', (syncUrl, userId) => {
+    if (syncUrl) {
+      obj[syncUrl] = {
+        text: '',
+        users: {
+          [userId]: socket.id,
+        },
+        draw: {
+          coords: {
+          },
+          config: {
+          }
+        }
+      }
+    }
   });
 
-  socket.on('drawLine', (args) => {
-    socket.broadcast.emit('drawLine', args);
+  socket.on('beginPath', (coords, syncUrl, userId) => {
+    for (let user in obj[syncUrl]?.users) {
+      if (user !== userId) {
+        io.to(obj[syncUrl].users[user]).emit('beginPath', coords);
+      }
+    }
+
+    obj = {
+      ...obj,
+      [syncUrl]: {
+        ...obj[syncUrl],
+        draw: {
+          ...obj[syncUrl]?.draw,
+          coords: coords
+        }
+      }
+    }
   });
 
-  socket.on('changeConfig', (args) => {
-    socket.broadcast.emit('changeConfig', args);
+  socket.on('drawLine', (coords, syncUrl, userId) => {
+    for (let user in obj[syncUrl]?.users) {
+      if (user !== userId) {
+        io.to(obj[syncUrl]?.users[user]).emit('drawLine', coords);
+      }
+    }
+
+    obj = {
+      ...obj,
+      [syncUrl]: {
+        ...obj[syncUrl],
+        draw: {
+          ...obj[syncUrl]?.draw,
+          coords: coords
+        }
+      }
+    }
   });
 
-  socket.on('textChange', (args) => {
-    socket.broadcast.emit('textChange', args, syncUrl);
-    text = args;
+  socket.on('changeConfig', (config, syncUrl, userId) => {
+    for (let user in obj[syncUrl]?.users) {
+      if (user !== userId) {
+        io.to(obj[syncUrl]?.users[user]).emit('changeConfig', config);
+      }
+    }
+
+    obj = {
+      ...obj,
+      [syncUrl]: {
+        ...obj[syncUrl],
+        draw: {
+          ...obj[syncUrl]?.draw,
+          config: config
+        }
+      }
+    }
   });
 
-  socket.on('initText', (url) => {
-    socket.emit('getText', text, syncUrl);
-    syncUrl = url;
+  socket.on('textChange', (text, syncUrl, userId) => {
+    for (let user in obj[syncUrl]?.users) {
+      if (user !== userId) {
+        io.to(obj[syncUrl]?.users[user]).emit('textChange', text);
+      }
+    }
+
+    obj = {
+      ...obj,
+      [syncUrl]: {
+        ...obj[syncUrl],
+        text: text
+      }
+    }
+  });
+
+  socket.on('initText', (url, userId) => {
+    socket.emit('getText', obj[url]?.text, url, userId);
+    io.to(obj[url]?.users[userId]).emit('getText', obj[url]?.text);
+  });
+
+  socket.on('disconnect', () => {
+    const id = socket.id;
+    for (const url in obj) {
+      const urlObj = obj[url];
+      // Check if the socketToFind exists in the users object
+      if (Object.values(urlObj.users).includes(id)) {
+        // Find the userId associated with the socket
+        const userId = Object.keys(urlObj.users).find(key => urlObj.users[key] === id);
+
+        // Remove the user from the users object
+        delete urlObj.users[userId];
+        socket.disconnect(true);
+      }
+    }
   });
 });
 
