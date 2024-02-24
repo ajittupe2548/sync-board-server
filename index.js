@@ -12,8 +12,6 @@ const io = new Server(httpServer, {
   cors: URL,
 });
 
-const clients = [];
-
 const isObjEmpty = (obj) => {
   for (const prop in obj) {
     if (Object.hasOwn(obj, prop)) {
@@ -45,7 +43,6 @@ const isObjEmpty = (obj) => {
 
 let obj = {};
 io.on('connection', (socket) => {
-  clients.push(socket.id);
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
       obj[syncUrl] = {
