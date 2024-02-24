@@ -14,6 +14,16 @@ const io = new Server(httpServer, {
 
 const clients = [];
 
+const isObjEmpty = (obj) => {
+  for (const prop in obj) {
+    if (Object.hasOwn(obj, prop)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 /* let objExample = {
   url1: {
     text: '',
@@ -144,6 +154,10 @@ io.on('connection', (socket) => {
         // Remove the user from the users object
         delete urlObj.users[userId];
         socket.disconnect(true);
+
+        if(isObjEmpty(obj[url].users)) {
+          delete obj[url];
+        }
       }
     }
   });
