@@ -39,8 +39,9 @@ io.on('connection', (socket) => {
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
       obj[syncUrl] = {
-        text: '',
+        text: obj[syncUrl]?.text || '',
         users: {
+          ...obj[syncUrl]?.users,
           [userId]: socket.id,
         },
         draw: {
