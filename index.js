@@ -12,6 +12,7 @@ const io = new Server(httpServer, {
   cors: URL,
 });
 
+/** Check if object is empty */
 const isObjEmpty = (obj) => {
   for (const prop in obj) {
     if (Object.hasOwn(obj, prop)) {
@@ -22,27 +23,9 @@ const isObjEmpty = (obj) => {
   return true;
 }
 
-/* let objExample = {
-  url1: {
-    text: '',
-    users: {
-      userId: socket,
-    },
-    draw: {
-      coords: {
-        x: '',
-        y: '',
-      },
-      config: {
-        color: 'red',
-        size: 1,
-      }
-    }
-  }
-}; */
-
 let obj = {};
 io.on('connection', (socket) => {
+  /** Handle user connection */
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
       obj[syncUrl] = {
@@ -61,6 +44,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  /** Listen begin path from client and emit it to the other users */
   socket.on('beginPath', (coords, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
@@ -80,6 +64,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  /** Listen draw line from client and emit it to the other users */
   socket.on('drawLine', (coords, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
@@ -99,6 +84,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  /** Listen change config from client and emit it to the other users */
   socket.on('changeConfig', (config, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
@@ -118,6 +104,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  /** Listen to text change from client and emit it to the other users */
   socket.on('textChange', (text, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
@@ -134,24 +121,26 @@ io.on('connection', (socket) => {
     }
   });
 
+  /** Listen init text from new client and emit getText method for that client */
   socket.on('initText', (url, userId) => {
     socket.emit('getText', obj[url]?.text, url, userId);
     io.to(obj[url]?.users[userId]).emit('getText', obj[url]?.text);
   });
 
+  /** Handle user disconnection */
   socket.on('disconnect', () => {
     const id = socket.id;
     for (const url in obj) {
       const urlObj = obj[url];
-      // Check if the socketToFind exists in the users object
       if (Object.values(urlObj.users).includes(id)) {
-        // Find the userId associated with the socket
+        /** Find the userId associated with the socket */
         const userId = Object.keys(urlObj.users).find(key => urlObj.users[key] === id);
 
-        // Remove the user from the users object
+        /** Remove the user from object */
         delete urlObj.users[userId];
         socket.disconnect(true);
 
+        /** Remove the url object if no active users for that url */
         if(isObjEmpty(obj[url].users)) {
           delete obj[url];
         }
@@ -161,3 +150,20 @@ io.on('connection', (socket) => {
 });
 
 httpServer.listen(5000);
+
+/**
+ * Object example
+ *
+ * obj = {
+ *  url1: {
+ *    text: 'abc',
+ *    users: { userId1: socketId, userId2: socketId },
+ *    draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
+ *  },
+ *  url2: {
+ *    text: 'xyz',
+ *    users: { userId1: socketId, userId2: socketId },
+ *    draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
+ *  }
+ * }
+ */
