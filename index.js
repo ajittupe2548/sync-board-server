@@ -30,12 +30,12 @@ io.on('connection', (socket) => {
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
       if(Object.keys(obj).length > 0 && Object.keys(obj[syncUrl]?.users).includes(userId)) {
-        console.log('****** reload happened updating data', )
         obj[syncUrl] = {
           ...obj[syncUrl],
           users: {
             ...obj[syncUrl]?.users,
             [userId]: {
+              ...obj[syncUrl]?.users[userId],
               socketId: socket.id,
               shouldDeleteOnClose: false,
             }
@@ -43,12 +43,12 @@ io.on('connection', (socket) => {
         }
       }
       else {
-        console.log('****** creating new', )
         obj[syncUrl] = {
           text: obj[syncUrl]?.text || '',
           users: {
             ...obj[syncUrl]?.users,
             [userId]: {
+              timeoutId: null,
               socketId: socket.id,
               shouldDeleteOnClose: true,
             },
@@ -61,7 +61,6 @@ io.on('connection', (socket) => {
           }
         }
       }
-      console.log(`*****Output is :  => socket.on => obj:`, obj[syncUrl]?.users)
     }
   });
 
@@ -151,7 +150,6 @@ io.on('connection', (socket) => {
   /** Handle user disconnection */
   socket.on('disconnect', () => {
     const id = socket.id;
-    let activeUrl;
     for (const url in obj) {
       const urlObj = obj[url];
       // Find the userId associated with the socket
@@ -165,22 +163,21 @@ io.on('connection', (socket) => {
           }
         });
       if (userId) {
-        setTimeout(() => {
-          console.log(`*****Output is :  => setTimeout => urlObj.users[userId].shouldDeleteOnClose:`, urlObj.users[userId].shouldDeleteOnClose)
-          if(urlObj.users[userId].shouldDeleteOnClose) {
+        clearTimeout(obj[url]?.users[userId]?.timeoutId);
+        obj[url].users[userId].timeoutId = setTimeout(() => {
+          if(obj[url]?.users[userId]?.shouldDeleteOnClose) {
             // Remove the user from object
-            delete urlObj.users[userId];
+            delete obj[url]?.users[userId];
             socket.disconnect(true);
 
             // Remove the url object if no active users for that url
-            if (isObjEmpty(urlObj.users)) {
+            if (isObjEmpty(obj[url]?.users)) {
               delete obj[url];
             }
           }
-          if(urlObj?.users[userId] && !urlObj?.users[userId]?.shouldDeleteOnClose) {
-            urlObj.users[userId].shouldDeleteOnClose = true;
+          if(obj[url]?.users[userId] && !obj[url]?.users[userId]?.shouldDeleteOnClose) {
+            obj[url].users[userId].shouldDeleteOnClose = true;
           }
-          console.log(`*****Output is :  => setTimeout => urlObj.users[userId].shouldDeleteOnClose:`, urlObj.users)
         }, 5000);
       }
     }
