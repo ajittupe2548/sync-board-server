@@ -2,6 +2,7 @@ const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const port = 5000;
 
 const app = express();
 const isDev = app.settings.env === 'development';
@@ -28,16 +29,35 @@ io.on('connection', (socket) => {
   /** Handle user connection */
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
-      obj[syncUrl] = {
-        text: obj[syncUrl]?.text || '',
-        users: {
-          ...obj[syncUrl]?.users,
-          [userId]: socket.id,
-        },
-        draw: {
-          coords: {
+      if(Object.keys(obj).length > 0 && Object.keys(obj[syncUrl]?.users).includes(userId)) {
+        obj[syncUrl] = {
+          ...obj[syncUrl],
+          users: {
+            ...obj[syncUrl]?.users,
+            [userId]: {
+              ...obj[syncUrl]?.users[userId],
+              socketId: socket.id,
+              shouldDeleteOnClose: false,
+            }
+          }
+        }
+      }
+      else {
+        obj[syncUrl] = {
+          text: obj[syncUrl]?.text || '',
+          users: {
+            ...obj[syncUrl]?.users,
+            [userId]: {
+              timeoutId: null,
+              socketId: socket.id,
+              shouldDeleteOnClose: true,
+            },
           },
-          config: {
+          draw: {
+            coords: {
+            },
+            config: {
+            }
           }
         }
       }
@@ -48,7 +68,7 @@ io.on('connection', (socket) => {
   socket.on('beginPath', (coords, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
-        io.to(obj[syncUrl].users[user]).emit('beginPath', coords);
+        io.to(obj[syncUrl]?.users[user]?.socketId).emit('beginPath', coords);
       }
     }
 
@@ -68,7 +88,7 @@ io.on('connection', (socket) => {
   socket.on('drawLine', (coords, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
-        io.to(obj[syncUrl]?.users[user]).emit('drawLine', coords);
+        io.to(obj[syncUrl]?.users[user]?.socketId).emit('drawLine', coords);
       }
     }
 
@@ -88,7 +108,7 @@ io.on('connection', (socket) => {
   socket.on('changeConfig', (config, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
-        io.to(obj[syncUrl]?.users[user]).emit('changeConfig', config);
+        io.to(obj[syncUrl]?.users[user]?.socketId).emit('changeConfig', config);
       }
     }
 
@@ -108,7 +128,7 @@ io.on('connection', (socket) => {
   socket.on('textChange', (text, syncUrl, userId) => {
     for (let user in obj[syncUrl]?.users) {
       if (user !== userId) {
-        io.to(obj[syncUrl]?.users[user]).emit('textChange', text);
+        io.to(obj[syncUrl]?.users[user]?.socketId).emit('textChange', text);
       }
     }
 
@@ -124,7 +144,7 @@ io.on('connection', (socket) => {
   /** Listen init text from new client and emit getText method for that client */
   socket.on('initText', (url, userId) => {
     socket.emit('getText', obj[url]?.text, url, userId);
-    io.to(obj[url]?.users[userId]).emit('getText', obj[url]?.text);
+    io.to(obj[url]?.users[userId]?.socketId).emit('getText', obj[url]?.text);
   });
 
   /** Handle user disconnection */
@@ -132,24 +152,41 @@ io.on('connection', (socket) => {
     const id = socket.id;
     for (const url in obj) {
       const urlObj = obj[url];
-      if (Object.values(urlObj.users).includes(id)) {
-        /** Find the userId associated with the socket */
-        const userId = Object.keys(urlObj.users).find(key => urlObj.users[key] === id);
+      // Find the userId associated with the socket
+      const userId = Object.keys(urlObj.users).find(key => {
+          if(urlObj.users[key].socketId === id) {
+            activeUrl = key;
+            return true;
+          }
+          else {
+            return false;
+          }
+        });
+      if (userId) {
+        clearTimeout(obj[url]?.users[userId]?.timeoutId);
+        obj[url].users[userId].timeoutId = setTimeout(() => {
+          if(obj[url]?.users[userId]?.shouldDeleteOnClose) {
+            // Remove the user from object
+            delete obj[url]?.users[userId];
+            socket.disconnect(true);
 
-        /** Remove the user from object */
-        delete urlObj.users[userId];
-        socket.disconnect(true);
-
-        /** Remove the url object if no active users for that url */
-        if(isObjEmpty(obj[url].users)) {
-          delete obj[url];
-        }
+            // Remove the url object if no active users for that url
+            if (isObjEmpty(obj[url]?.users)) {
+              delete obj[url];
+            }
+          }
+          if(obj[url]?.users[userId] && !obj[url]?.users[userId]?.shouldDeleteOnClose) {
+            obj[url].users[userId].shouldDeleteOnClose = true;
+          }
+        }, 5000);
       }
     }
   });
 });
 
-httpServer.listen(5000);
+httpServer.listen(5000, () => {
+  console.log(`Express server running on http://localhost:${port}`);
+});
 
 /**
  * Object example
@@ -157,7 +194,7 @@ httpServer.listen(5000);
  * obj = {
  *  url1: {
  *    text: 'abc',
- *    users: { userId1: socketId, userId2: socketId },
+ *    users: { userId1: { socketId: socketId, isReloading: false }, userId2: { socketId: socketId, isReloading: false }},
  *    draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
  *  },
  *  url2: {
