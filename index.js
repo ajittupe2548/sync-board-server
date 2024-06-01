@@ -29,7 +29,7 @@ io.on('connection', (socket) => {
   /** Handle user connection */
   socket.on('init', (syncUrl, userId) => {
     if (syncUrl) {
-      if(Object.keys(obj).length > 0 && Object.keys(obj[syncUrl]?.users).includes(userId)) {
+      if(Object.keys(obj).length > 0 && obj[syncUrl]?.users && Object.keys(obj[syncUrl].users).includes(userId)) {
         obj[syncUrl] = {
           ...obj[syncUrl],
           users: {
@@ -147,15 +147,29 @@ io.on('connection', (socket) => {
     io.to(obj[url]?.users[userId]?.socketId).emit('getText', obj[url]?.text);
   });
 
+  /** Send server data to the admin */
+  socket.on('getData', () => {
+    const data = Object.keys(obj).map(url => {
+      const users = obj[url]?.users;
+      const userCount = users ? Object.keys(users).length : 0;
+      return { [url]: userCount };
+    });
+
+    socket.emit('dataResponse', data);
+  });
+
+  /** Delete data on admin's request */
+  socket.on('deleteData', () => {
+    obj = {};
+  });
+
   /** Handle user disconnection */
   socket.on('disconnect', () => {
     const id = socket.id;
     for (const url in obj) {
-      const urlObj = obj[url];
       // Find the userId associated with the socket
-      const userId = Object.keys(urlObj.users).find(key => {
-          if(urlObj.users[key].socketId === id) {
-            activeUrl = key;
+      const userId = Object.keys(obj[url]?.users).find(key => {
+          if(obj[url]?.users[key]?.socketId === id) {
             return true;
           }
           else {
@@ -192,15 +206,15 @@ httpServer.listen(5000, () => {
  * Object example
  *
  * obj = {
- *  url1: {
- *    text: 'abc',
- *    users: { userId1: { socketId: socketId, isReloading: false }, userId2: { socketId: socketId, isReloading: false }},
- *    draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
- *  },
- *  url2: {
- *    text: 'xyz',
- *    users: { userId1: socketId, userId2: socketId },
- *    draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
- *  }
+ *   url1: {
+ *     text: 'abc',
+ *     users: { userId1: { socketId: socketId1, shouldDeleteOnClose: true, timeoutId: null }, userId2: { socketId: socketId2, shouldDeleteOnClose: true, timeoutId: null }},
+ *     draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
+ *   },
+*    url2: {
+*      text: 'abc',
+*      users: { userId1: { socketId: socketId1, shouldDeleteOnClose: true, timeoutId: null }, userId2: { socketId: socketId2, shouldDeleteOnClose: true, timeoutId: null }},
+*      draw: { coords: { x: '', y: '' }, config: { color: 'red', size: 1 }}
+*   }
  * }
  */
