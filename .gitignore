@@ -19,6 +19,10 @@
 .env.test.local
 .env.production.local
 
+# Data and logs (should not be committed)
+data/
+logs/
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
