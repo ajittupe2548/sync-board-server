@@ -182,10 +182,7 @@ class SocketHandlers {
             if (userData) {
                 clearTimeout(userData.timeoutId);
 
-                const totalCount = this.storage.getUserCount(roomId);
                 const maxUsers = CONFIG.MAX_ROOM_SIZE;
-
-                logger.info(`User ${userId} disconnected from room ${roomId} (${totalCount}/${maxUsers} users remaining)`);
 
                 // Set cleanup timeout - only remove user if they don't reconnect
                 const timeoutId = setTimeout(async () => {
