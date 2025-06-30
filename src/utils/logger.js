@@ -32,10 +32,8 @@ class Logger {
     const logEntry = `[${timestamp}] ${level.toUpperCase()}: ${message}\n`;
 
     try {
-      // Check if log cleanup is needed
       await this.cleanupLogIfNeeded();
 
-      // Append to log file
       await fs.appendFile(this.logFile, logEntry);
     } catch (error) {
       console.error('Logging error:', error.message);
@@ -58,7 +56,6 @@ class Logger {
       // Read the current log file
       const logContent = await fs.readFile(this.logFile, 'utf8');
 
-      // Remove first 100KB of content
       const newContent = logContent.slice(this.clearSize);
 
       // Write back the trimmed content

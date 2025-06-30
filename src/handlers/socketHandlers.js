@@ -7,7 +7,6 @@ class SocketHandlers {
         this.storage = storage;
     }
 
-    // Handle user connection with error handling and validation
     async handleInit(socket, syncUrl, userId) {
         try {
             const roomId = sanitizeRoomId(syncUrl);
@@ -23,10 +22,8 @@ class SocketHandlers {
                 return;
             }
 
-            // Check room capacity
             const totalUsersCount = this.storage.getUserCount(roomId);
 
-            // Check if user already exists in room
             const userAlreadyExists = this.storage.userExists(roomId, cleanUserId);
 
             // Reject if room is full AND user is not already in the room
@@ -36,12 +33,10 @@ class SocketHandlers {
                 return;
             }
 
-            // Initialize room if it doesn't exist
             if (!this.storage.getRoomData(roomId)) {
                 this.storage.createRoom(roomId);
             }
 
-            // Handle existing user reconnection or add new user
             let isNewUser = false;
             if (this.storage.userExists(roomId, cleanUserId)) {
                 this.storage.reconnectUser(roomId, cleanUserId, socket.id);
@@ -55,7 +50,6 @@ class SocketHandlers {
             socket.roomId = roomId;
             socket.userId = cleanUserId;
 
-            // Get updated user count and log the connection
             const currentUserCount = this.storage.getUserCount(roomId);
             const maxUsers = CONFIG.MAX_ROOM_SIZE;
 

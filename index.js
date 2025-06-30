@@ -54,10 +54,10 @@ class SyncBoardServer {
 
   start() {
     this.httpServer.listen(CONFIG.PORT, () => {
-      logger.info(`🚀 Server running on http://localhost:${CONFIG.PORT}`);
-      logger.info(`📁 Data directory: ${CONFIG.DATA_DIR}`);
-      logger.info(`👥 Max room size: ${CONFIG.MAX_ROOM_SIZE} users`);
-      logger.info(`📝 Max text length: ${(CONFIG.MAX_TEXT_LENGTH / 1000000).toFixed(1)}MB`);
+      logger.info(`Server running on http://localhost:${CONFIG.PORT}`);
+      logger.info(`Data directory: ${CONFIG.DATA_DIR}`);
+      logger.info(`Max room size: ${CONFIG.MAX_ROOM_SIZE} users`);
+      logger.info(`Max text length: ${(CONFIG.MAX_TEXT_LENGTH / 1000000).toFixed(1)}MB`);
       logger.info(`=== Server Ready ===`);
     });
   }

@@ -1,5 +1,3 @@
-// Utility functions for data validation and sanitization
-
 const sanitizeRoomId = (roomId) => {
     if (!roomId || typeof roomId !== 'string') return null;
     // Allow only alphanumeric characters and hyphens

@@ -36,7 +36,6 @@ class DataStorage {
                     const fileContent = await fs.readFile(filePath, 'utf8');
                     const roomData = JSON.parse(fileContent);
 
-                    // Reset socket connections and timeouts on server restart
                     if (roomData.users) {
                         Object.keys(roomData.users).forEach(userId => {
                             roomData.users[userId].socketId = null;
@@ -49,7 +48,6 @@ class DataStorage {
             }
             logger.info(`Loaded ${Object.keys(this.data).length} rooms from storage`);
 
-            // Clear all users on server restart since they're all disconnected
             for (const [roomId, room] of Object.entries(this.data)) {
                 if (room.users && Object.keys(room.users).length > 0) {
                     room.users = {};
@@ -75,7 +73,6 @@ class DataStorage {
                 lastUpdated: new Date().toISOString()
             };
 
-            // Remove socket-specific data before saving
             if (dataToSave.users) {
                 Object.keys(dataToSave.users).forEach(userId => {
                     delete dataToSave.users[userId].socketId;
@@ -94,7 +91,6 @@ class DataStorage {
             delete this.data[roomId];
             const filePath = path.join(CONFIG.DATA_DIR, `${roomId}.json`);
             await fs.unlink(filePath);
-            // Removed unnecessary log - room deletion is expected behavior
         } catch (error) {
             logger.error(`Error deleting room ${roomId}: ${error.message}`);
         }
