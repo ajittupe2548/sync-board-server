@@ -5,7 +5,7 @@ const express = require('express');
 const CONFIG = {
     PORT: process.env.PORT || 5000,
     DATA_DIR: path.join(__dirname, '../../data'),
-    MAX_ROOM_SIZE: 10,
+    MAX_ROOM_SIZE: 5,
     MAX_TEXT_LENGTH: 1000000, // 1MB
     CLIENT_URL: (() => {
         const app = express();

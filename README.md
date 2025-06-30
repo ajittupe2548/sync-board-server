@@ -107,7 +107,7 @@ The server automatically detects the environment and configures client URLs:
 ```javascript
 {
     PORT: 5000,                    // Server port
-    MAX_ROOM_SIZE: 10,              // Maximum users per room
+    MAX_ROOM_SIZE: 5,              // Maximum users per room
     MAX_TEXT_LENGTH: 1000000,      // Maximum text size (1MB)
     DISCONNECT_GRACE_PERIOD: 5000, // Reconnection grace period (5s)
     INIT_THROTTLE_TIME: 1000,      // Prevent rapid init calls (1s)
